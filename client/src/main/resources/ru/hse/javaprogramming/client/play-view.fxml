@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+
+<?import java.net.URL?>
+<AnchorPane prefHeight="400.0" prefWidth="650.0" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="ru.hse.javaprogramming.client.PlayController">
+
+    <stylesheets>
+        <URL value="@styles.css" />
+    </stylesheets>
+
+    <padding>
+        <Insets bottom="5.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <Label text="Клавогонки" style="-fx-font-size: 24px;" alignment="TOP_CENTER" AnchorPane.topAnchor="20" AnchorPane.leftAnchor="20" AnchorPane.rightAnchor="20" />
+
+    <VBox spacing="5" alignment="TOP_CENTER" AnchorPane.topAnchor="60" AnchorPane.leftAnchor="20" AnchorPane.rightAnchor="20" AnchorPane.bottomAnchor="10">
+        <Label text="Игроки"/>
+        <HBox spacing="5">
+            <Label text="игроки...игроки...игроки...игроки...игроки...игроки...игроки...игроки...игроки..." styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
+            <Label text="До конца игры ... секунд" styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
+        </HBox>
+
+        <Label text="Текст для ввода"/>
+        <VBox VBox.vgrow="ALWAYS">
+            <Label fx:id="givenTextLabel" styleClass="sunken-label" alignment="TOP_LEFT" wrapText="true" minHeight="100" maxWidth="Infinity" maxHeight="Infinity" AnchorPane.topAnchor="150" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
+        </VBox>
+
+        <Label text="Вводите текст здесь"/>
+        <TextField fx:id="userTextInput" VBox.vgrow="ALWAYS" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
+    </VBox>
+
+</AnchorPane>
