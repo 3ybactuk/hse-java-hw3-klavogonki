@@ -1,5 +1,6 @@
 package ru.hse.javaprogramming;
 
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -7,24 +8,26 @@ import java.util.Objects;
 public class Player {
     private final String name;
     private final String ipAddress;
-    public int symbolsTyped;
-    public int mistakesMade;
-    public boolean isYou;
-    public boolean isConnectionInterrupted;
+    private Game game;
+    public int totalSymbols = 0;
+    public int wrongSymbols = 0;
+    public boolean isYou = false;
+    public boolean isConnectionInterrupted = false;
 
     public Player(String name, String ipAddress) {
         this.name = name;
         this.ipAddress = ipAddress;
     }
 
-    public Map<String, String> getPlayerInfo() {
+    public Map<String, String> getPlayerInfoMap() {
         Map<String, String> playerInfo = new HashMap<>();
 
         playerInfo.put("name", name);
-        playerInfo.put("symbols_typed", Integer.toString(symbolsTyped));
-        playerInfo.put("mistakes_made", Integer.toString(mistakesMade));
+        playerInfo.put("total_symbols", Integer.toString(totalSymbols));
+        playerInfo.put("wrong_symbols", Integer.toString(wrongSymbols));
         playerInfo.put("is_you", Boolean.toString(isYou));
         playerInfo.put("connection_interrupted", Boolean.toString(isConnectionInterrupted));
+        playerInfo.put("text_length", Integer.toString(game.getText().length()));
 
         return playerInfo;
     }
@@ -35,6 +38,14 @@ public class Player {
 
     public String getIpAddress() {
         return ipAddress;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    public void setGame(Game game) {
+        this.game = game;
     }
 
     @Override

@@ -3,7 +3,7 @@ package ru.hse.javaprogramming;
 import java.time.LocalTime;
 
 public class Logging {
-    public static void printTimestampMessage(String message) {
+    public static String getTimestamp() {
         LocalTime currentTime = LocalTime.now();
         int hour = currentTime.getHour();
         int minute = currentTime.getMinute();
@@ -12,7 +12,10 @@ public class Logging {
         String strMinute = minute < 10 ? "0" + minute : String.valueOf(minute);
         String strSecond = second < 10 ? "0" + second : String.valueOf(second);
 
-        System.out.println("[" + strHour + ":" + strMinute + ":" + strSecond + "] " +
-                message);
+        return "[" + strHour + ":" + strMinute + ":" + strSecond + "]";
+    }
+
+    public static void printTimestampMessage(String message) {
+        System.out.println(getTimestamp() + " " + message);
     }
 }

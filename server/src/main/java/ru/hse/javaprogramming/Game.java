@@ -6,20 +6,32 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Game {
+    public final int MAX_PLAYERS = 3;
+    public final int WAIT_TIME = 6;
+    public final int GAME_TIME = 30;
+    public final int SHOW_TEXT_TIME = 5;
     private final List<Player> players = new ArrayList<>();
     private final Timer timer;
     private final String text;
-    private boolean isTextHidden = true;
+    public boolean isTextHidden = true;
+    public boolean isGameStarted = false;
+    public boolean isGameEnded = false;
+    public int secondsRemaining;
+
 
     public Game(String text) {
         timer = new Timer();
         this.text = text;
+        secondsRemaining = WAIT_TIME;
+    }
+
+    public int countPlayers() {
+        return players.size();
     }
 
     public void addPlayer(Player player) {
         players.add(player);
         if (players.size() == 1) {
-            // Start the game if it's the first player
             startGame();
         }
     }
@@ -27,7 +39,6 @@ public class Game {
     public void removePlayer(Player player) {
         players.remove(player);
         if (players.isEmpty()) {
-            // End the game if there are no players left
             endGame();
         }
     }
@@ -36,19 +47,34 @@ public class Game {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                isTextHidden = false;
+                secondsRemaining--;
+
+                if (!isGameStarted) {
+                    if (secondsRemaining <= 0) {
+                        isGameStarted = true;
+                        secondsRemaining = GAME_TIME;
+                    } else if (secondsRemaining <= SHOW_TEXT_TIME) {
+                        isTextHidden = false;
+                    }
+                } else if (secondsRemaining <= 0) {
+                    isGameEnded = true;
+                    endGame();
+                }
             }
-        }, 25_000);
+        }, 1_000, 1_000);
+
+
     }
 
     private void endGame() {
         timer.cancel();
     }
 
-    private void sendTextToPlayers(String text) {
-        // Send the text to all players
-        for (Player player : players) {
-            // Send the text to the player
-        }
+    public String getText() {
+        return text;
+    }
+
+    public List<Player> getPlayers() {
+        return players;
     }
 }

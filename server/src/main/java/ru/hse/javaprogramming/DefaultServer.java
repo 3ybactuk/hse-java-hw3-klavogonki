@@ -1,14 +1,10 @@
 package ru.hse.javaprogramming;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,11 +15,11 @@ public class DefaultServer implements Server {
     private final int port;
     private final ServerSocket serverSocket;
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREADS);
-    private final List<Player> playersInGame = new ArrayList<>();
+    private final List<Player> playersList = new ArrayList<>();
+    private final List<Game> games = new ArrayList<>();
 
     public DefaultServer(int port) throws IOException {
         this.port = port;
-
         serverSocket = new ServerSocket(port);
     }
 
@@ -55,16 +51,21 @@ public class DefaultServer implements Server {
     private class Handler implements Runnable {
         private final Socket socket;
         private Player player;
+        private final Timer updateTimer;
+        private Game game;
 
         public Handler(Socket socket) {
             this.socket = socket;
+            this.updateTimer = new Timer();
         }
 
         @Override
         public void run() {
             try (socket;
                  DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream())) {
+                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream())) {
                 Logging.printTimestampMessage("Client " + socket.getInetAddress().getHostAddress() + " connected to the server");
 
                 boolean shouldExit = false;
@@ -73,43 +74,76 @@ public class DefaultServer implements Server {
                     String[] request = dataInputStream.readUTF().split(" ", 2);
                     if (request.length < 1) {
                         Logging.printTimestampMessage("Invalid request from client " + socket.getInetAddress().getHostAddress());
-                        dataOutputStream.writeInt(HTTPStatusCodes.BAD_REQUEST.getCode());
-                        dataOutputStream.flush();
+                        continue;
                     }
                     Logging.printTimestampMessage("Got request: [" + request[0] + "] from client: " + socket.getInetAddress().getHostAddress());
 
                     switch (request[0]) {
-                        case "GET_TEXT" -> {
-                            String text = FileLib.getTextFromFile("amogus.txt");
-
-                            dataOutputStream.writeInt(HTTPStatusCodes.OK.getCode());
-                            dataOutputStream.writeUTF(text);
-                            dataOutputStream.flush();
-
-                            Logging.printTimestampMessage("Sent text to the client " + socket.getInetAddress().getHostAddress());
-                        }
-                        case "GET_PLAYERS" -> {
-
-                        }
                         case "SEND_CLIENT_NAME" -> {
                             if (request.length < 2) {
                                 Logging.printTimestampMessage("Client didn't send name: " + socket.getInetAddress().getHostAddress());
-
-                                dataOutputStream.writeInt(HTTPStatusCodes.BAD_REQUEST.getCode());
                             } else {
                                 String name = request[1];
                                 Logging.printTimestampMessage("Server got name " + name + " from client: " + socket.getInetAddress().getHostAddress());
 
-                                player = new Player(name, socket.getInetAddress().getHostAddress());
+                                if (isPlayerNameAvailable(name)) {
+                                    player = new Player(name, socket.getInetAddress().getHostAddress());
+                                    addPlayerToGame(player);
+                                    dataOutputStream.writeInt(HTTPStatusCodes.OK.getCode());
+                                    dataOutputStream.writeUTF(game.getText());
+                                    dataOutputStream.flush();
 
-                                dataOutputStream.writeInt(HTTPStatusCodes.OK.getCode());
+                                    updateTimer.scheduleAtFixedRate(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                // Send update message to the client
+                                                if (player != null) {
+//                                                    dataOutputStream.writeUTF("TIME_LEFT");
+                                                    dataOutputStream.writeInt(game.secondsRemaining);
+//                                                    dataOutputStream.writeUTF("IS_TEXT_HIDDEN");
+                                                    dataOutputStream.writeBoolean(game.isTextHidden);
+//                                                    dataOutputStream.writeUTF("IS_GAME_STARTED");
+                                                    dataOutputStream.writeBoolean(game.isGameStarted);
+//                                                    dataOutputStream.writeUTF("IS_GAME_ENDED");
+                                                    dataOutputStream.writeBoolean(game.isGameEnded);
+//                                                    dataOutputStream.writeUTF("PLAYER_INFO");
+                                                    dataOutputStream.writeInt(game.countPlayers());
+                                                    dataOutputStream.flush();
+
+                                                    for (Player player : game.getPlayers()) {
+                                                        objectOutputStream.writeObject(player.getPlayerInfoMap());
+                                                        objectOutputStream.flush();
+                                                    }
+                                                }
+                                            } catch (IOException e) {
+                                                removePlayerFromGame(player);
+                                                Logging.printTimestampMessage("Stopping server updates for client " + socket.getInetAddress().getHostAddress());
+                                                cancel();
+                                            }
+                                        }
+                                    }, 0, 1_000);
+                                } else {
+                                    Logging.printTimestampMessage("Can't connect player " + name + " from: " + socket.getInetAddress().getHostAddress() + " " +
+                                            "because the name is occupied.");
+                                    dataOutputStream.writeInt(HTTPStatusCodes.FORBIDDEN.getCode());
+                                    dataOutputStream.flush();
+                                    shouldExit = true;
+                                }
                             }
+                        }
+                        case "PLAYER_UPDATE" -> {
+                            Map<String, String> playerUpdate = (Map<String, String>) objectInputStream.readObject();
+                            Logging.printTimestampMessage(playerUpdate.toString());
+                        }
+                        case "GET_TEXT" -> {
+                            dataOutputStream.writeUTF(game.getText());
                             dataOutputStream.flush();
                         }
                         default -> Logging.printTimestampMessage("Invalid request from client " + socket.getInetAddress().getHostAddress());
                     }
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 Logging.printTimestampMessage(e + " Lost connection to client " + socket.getInetAddress().getHostAddress());
             } finally {
                 removePlayerFromGame(player);
@@ -119,19 +153,38 @@ public class DefaultServer implements Server {
         }
 
         private synchronized List<Player> getPlayersForGame() {
-            return new ArrayList<>(playersInGame);
+            return new ArrayList<>(playersList);
         }
 
         private synchronized boolean isPlayerNameAvailable(String name) {
-            return playersInGame.stream().noneMatch(player -> player.getName().equals(name));
+            return playersList.stream().noneMatch(player -> player.getName().equals(name));
         }
 
         private synchronized void addPlayerToGame(Player player) {
-            playersInGame.add(player);
+            playersList.add(player);
+            boolean isGameFound = false;
+            for (Game game : games) {
+                if (game.isTextHidden && game.countPlayers() < game.MAX_PLAYERS) {
+                    isGameFound = true;
+                    game.addPlayer(player);
+                    player.setGame(game);
+                    this.game = game;
+                }
+            }
+
+            if (!isGameFound) {
+                this.game = new Game(FileLib.getRandomText());
+                this.game.addPlayer(player);
+                player.setGame(this.game);
+                games.add(this.game);
+
+            }
         }
 
         private synchronized void removePlayerFromGame(Player playerToRemove) {
-            playersInGame.removeIf(player -> player.getName().equals(playerToRemove.getName()));
+            if (playerToRemove != null) {
+                playersList.removeIf(player -> player.getName().equals(playerToRemove.getName()));
+            }
         }
     }
 

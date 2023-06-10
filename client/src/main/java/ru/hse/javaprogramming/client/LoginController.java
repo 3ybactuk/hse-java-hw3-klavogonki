@@ -26,15 +26,18 @@ public class LoginController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("play-view.fxml"));
 
-
             Parent root = loader.load();
 
             Stage stage = new Stage();
             stage.setScene(new Scene(root));
 
             PlayController playController = loader.getController();
-            playController.setClient(ipAddressInput.getText(), Integer.parseInt(portInput.getText()), nameInput.getText());
-            playController.setText();
+            if (!playController.setClient(ipAddressInput.getText(), Integer.parseInt(portInput.getText()), nameInput.getText(), stage)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Пользователь с таким именем уже существует", ButtonType.OK);
+                alert.setHeaderText("Ошибка подключения");
+                alert.showAndWait();
+                return;
+            }
 
             Runtime.getRuntime().addShutdownHook(new Thread(playController::disconnectClient));
 
@@ -53,4 +56,9 @@ public class LoginController {
         alert.setHeaderText("");
         alert.showAndWait();
     }
+
+
+//    public void setStage(Stage stage) {
+//        loginStage = stage;
+//    }
 }

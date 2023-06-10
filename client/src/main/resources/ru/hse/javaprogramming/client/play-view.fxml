@@ -26,13 +26,13 @@
     <VBox spacing="5" alignment="TOP_CENTER" AnchorPane.topAnchor="60" AnchorPane.leftAnchor="20" AnchorPane.rightAnchor="20" AnchorPane.bottomAnchor="10">
         <Label text="Игроки"/>
         <HBox spacing="5">
-            <Label text="игроки...игроки...игроки...игроки...игроки...игроки...игроки...игроки...игроки..." styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
-            <Label text="До конца игры ... секунд" styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
+            <Label fx:id="playerStats" text="" alignment="TOP_LEFT" minHeight="75" styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
+            <Label fx:id="timerLabel" text="" styleClass="sunken-label" HBox.hgrow="ALWAYS" wrapText="true"/>
         </HBox>
 
         <Label text="Текст для ввода"/>
         <VBox VBox.vgrow="ALWAYS">
-            <Label fx:id="givenTextLabel" styleClass="sunken-label" alignment="TOP_LEFT" wrapText="true" minHeight="100" maxWidth="Infinity" maxHeight="Infinity" AnchorPane.topAnchor="150" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
+            <Label fx:id="givenTextLabel" styleClass="sunken-label" alignment="TOP_LEFT" wrapText="true" minHeight="150" maxWidth="Infinity" maxHeight="Infinity" AnchorPane.topAnchor="150" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
         </VBox>
 
         <Label text="Вводите текст здесь"/>
