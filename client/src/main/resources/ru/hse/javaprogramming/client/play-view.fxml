@@ -9,6 +9,7 @@
 <?import javafx.geometry.Insets?>
 
 <?import java.net.URL?>
+<?import javafx.scene.text.TextFlow?>
 <AnchorPane prefHeight="400.0" prefWidth="650.0" xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="ru.hse.javaprogramming.client.PlayController">
@@ -32,7 +33,7 @@
 
         <Label text="Текст для ввода"/>
         <VBox VBox.vgrow="ALWAYS">
-            <Label fx:id="givenTextLabel" styleClass="sunken-label" alignment="TOP_LEFT" wrapText="true" minHeight="150" maxWidth="Infinity" maxHeight="Infinity" AnchorPane.topAnchor="150" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
+            <TextFlow fx:id="givenTextLabel" styleClass="sunken-label" minHeight="150" maxWidth="Infinity" maxHeight="Infinity" AnchorPane.topAnchor="150" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
         </VBox>
 
         <Label text="Вводите текст здесь"/>

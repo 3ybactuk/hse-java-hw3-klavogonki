@@ -56,9 +56,4 @@ public class LoginController {
         alert.setHeaderText("");
         alert.showAndWait();
     }
-
-
-//    public void setStage(Stage stage) {
-//        loginStage = stage;
-//    }
 }

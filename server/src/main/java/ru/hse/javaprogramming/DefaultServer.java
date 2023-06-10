@@ -9,6 +9,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The DefaultServer represents a server that handles client connections and communication.
+ */
 public class DefaultServer implements Server {
     private static final int THREADS = 10;
     private static final int MAX_PLAYERS_PER_GAME = 3;
@@ -18,11 +21,20 @@ public class DefaultServer implements Server {
     private final List<Player> playersList = new ArrayList<>();
     private final List<Game> games = new ArrayList<>();
 
+    /**
+     * Creates a new instance of DefaultServer with the specified port number.
+     *
+     * @param port the port number on which the server listens for client connections
+     * @throws IOException if an I/O error occurs when opening the server socket
+     */
     public DefaultServer(int port) throws IOException {
         this.port = port;
         serverSocket = new ServerSocket(port);
     }
 
+    /**
+     * Starts the server and begins accepting client connections.
+     */
     @Override
     public void start() {
         Logging.printTimestampMessage("Server is started");
@@ -30,6 +42,9 @@ public class DefaultServer implements Server {
         executorService.execute(acceptor);
     }
 
+    /**
+     * The Acceptor class is responsible for accepting client connections and creating handler threads for each client.
+     */
     private class Acceptor implements Runnable {
         @Override
         public void run() {
@@ -48,17 +63,28 @@ public class DefaultServer implements Server {
         }
     }
 
+    /**
+     * The Handler class is responsible for handling client requests and managing player and game data for each client.
+     */
     private class Handler implements Runnable {
         private final Socket socket;
         private Player player;
         private final Timer updateTimer;
         private Game game;
 
+        /**
+         * Creates a new instance of Handler with the specified socket.
+         *
+         * @param socket the client socket
+         */
         public Handler(Socket socket) {
             this.socket = socket;
             this.updateTimer = new Timer();
         }
 
+        /**
+         * Handles client requests and manages player and game data.
+         */
         @Override
         public void run() {
             try (socket;
@@ -99,6 +125,8 @@ public class DefaultServer implements Server {
                                             try {
                                                 // Send update message to the client
                                                 if (player != null) {
+//                                                    dataOutputStream.writeUTF("TIME_ELAPSED");
+                                                    dataOutputStream.writeInt(game.timeElapsed);
 //                                                    dataOutputStream.writeUTF("TIME_LEFT");
                                                     dataOutputStream.writeInt(game.secondsRemaining);
 //                                                    dataOutputStream.writeUTF("IS_TEXT_HIDDEN");
@@ -112,6 +140,7 @@ public class DefaultServer implements Server {
                                                     dataOutputStream.flush();
 
                                                     for (Player player : game.getPlayers()) {
+                                                        System.out.println(player.getPlayerInfoMap());
                                                         objectOutputStream.writeObject(player.getPlayerInfoMap());
                                                         objectOutputStream.flush();
                                                     }
@@ -134,6 +163,7 @@ public class DefaultServer implements Server {
                         }
                         case "PLAYER_UPDATE" -> {
                             Map<String, String> playerUpdate = (Map<String, String>) objectInputStream.readObject();
+                            updatePlayer(playerUpdate);
                             Logging.printTimestampMessage(playerUpdate.toString());
                         }
                         case "GET_TEXT" -> {
@@ -152,14 +182,45 @@ public class DefaultServer implements Server {
             Logging.printTimestampMessage("Client disconnected: " + socket.getInetAddress().getHostAddress());
         }
 
+        /**
+         * Updates the player information based on the received player map.
+         *
+         * @param playerMap the map containing the updated player information
+         */
+        private synchronized void updatePlayer(Map<String, String> playerMap) {
+            for (Player pl : playersList) {
+                if (pl.getName().equals(playerMap.get("name"))) {
+                    pl.wrongSymbols = Integer.parseInt(playerMap.get("wrong_symbols"));
+                    pl.totalSymbols = Integer.parseInt(playerMap.get("total_symbols"));
+
+                }
+            }
+        }
+
+        /**
+         * Returns a list of players available for the game.
+         *
+         * @return a list of players available for the game
+         */
         private synchronized List<Player> getPlayersForGame() {
             return new ArrayList<>(playersList);
         }
 
+        /**
+         * Checks if the specified player name is available.
+         *
+         * @param name the player name to check
+         * @return true if the player name is available, false otherwise
+         */
         private synchronized boolean isPlayerNameAvailable(String name) {
             return playersList.stream().noneMatch(player -> player.getName().equals(name));
         }
 
+        /**
+         * Adds the player to a game or creates a new game if no suitable game is found.
+         *
+         * @param player the player to add
+         */
         private synchronized void addPlayerToGame(Player player) {
             playersList.add(player);
             boolean isGameFound = false;
@@ -181,6 +242,11 @@ public class DefaultServer implements Server {
             }
         }
 
+        /**
+         * Removes the specified player from the game.
+         *
+         * @param playerToRemove the player to remove
+         */
         private synchronized void removePlayerFromGame(Player playerToRemove) {
             if (playerToRemove != null) {
                 playersList.removeIf(player -> player.getName().equals(playerToRemove.getName()));
@@ -188,6 +254,11 @@ public class DefaultServer implements Server {
         }
     }
 
+    /**
+     * Closes the server and releases any system resources associated with it.
+     *
+     * @throws IOException if an I/O error occurs when closing the server socket
+     */
     @Override
     public void close() throws IOException {
         serverSocket.close();

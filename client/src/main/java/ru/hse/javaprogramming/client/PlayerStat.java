@@ -1,5 +1,6 @@
 package ru.hse.javaprogramming.client;
 
+import java.text.DecimalFormat;
 import java.util.Objects;
 
 public class PlayerStat implements Comparable<PlayerStat> {
@@ -21,12 +22,22 @@ public class PlayerStat implements Comparable<PlayerStat> {
     }
 
     public String getPercentage() {
-        return (totalSymbols / textLength) * 100 + "%";
+//        System.out.println(((double) totalSymbols / textLength) * 100 + "%");
+        if (textLength == 0) {
+            return "0%";
+        }
+
+        DecimalFormat df = new DecimalFormat("####0.00");
+
+        return df.format(((double) totalSymbols / textLength) * 100) + "%";
     }
 
     public String getSpeed() {
-        return totalSymbols + " сим/мин";
-//        return totalSymbols / (secondsElapsed / 60) + " сим/мин";
+        if (secondsElapsed == 0) {
+            return "0 сим/мин";
+        }
+
+        return (int) (((double) totalSymbols / secondsElapsed) * 60) + " сим/мин";
     }
 
     @Override

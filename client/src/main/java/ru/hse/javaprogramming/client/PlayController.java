@@ -2,12 +2,16 @@ package ru.hse.javaprogramming.client;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -18,28 +22,91 @@ public class PlayController {
     public TextField userTextInput;
 
     @FXML
-    public Label givenTextLabel;
+    public TextFlow givenTextLabel;
+    private Text textToInput;
     @FXML
     public Label playerStats;
     @FXML
     public Label timerLabel;
 
     public Client client;
-    private Stage stage;
+    private boolean newWord = true;
+    private int wordEndPos = 0;
+    private int wordStartPos = 0;
 
     public void initialize() {
+        textToInput = new Text();
+        givenTextLabel.getChildren().add(textToInput);
+
         userTextInput.setEditable(false);
-        userTextInput.setOnKeyReleased(this::handleKeyReleased);
+        userTextInput.textProperty().addListener(this::handleKeyReleased);
     }
 
-    private void handleKeyReleased(KeyEvent event) {
-        if (userTextInput.isEditable()) {
-            String inputText = userTextInput.getText();
-            if (inputText.length() > 0 && inputText.charAt(inputText.length() - 1) == ' ') {
-                userTextInput.setText("");
+    private void handleKeyReleased(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+//        System.out.println("textfield changed from " + oldValue + " to " + newValue);
+        client.sendPlayerUpdate();
+
+        if (client.charPos >= textToInput.getText().length() - 1) {
+            userTextInput.setEditable(false);
+            Platform.runLater(() -> {
+                userTextInput.clear();
+            });
+            return;
+        }
+
+        if (newValue.length() > 0) {
+            newWord = false;
+            char curChar = newValue.charAt(newValue.length() - 1);
+            char textChar = client.getText().charAt(client.charPos);
+//            System.out.println(curChar + " " + textChar);
+
+
+            if (curChar == ' ') {
+                Platform.runLater(() -> {
+                    userTextInput.clear();
+                });
+                client.charPos++;
+                newWord = true;
+                wordEndPos = client.charPos;
+                while (wordEndPos < textToInput.getText().length() && (textToInput.getText().charAt(wordEndPos) != ' ')) { wordEndPos++; }
+            } else if (newValue.compareTo(oldValue) < 0) {
+//                System.out.println("Char deleted");
+                client.charPos--;
+            } else {
+                if (client.charPos < wordEndPos) {
+                    if (curChar != textChar) {
+                        client.wrongSymbols++;
+                    } else {
+//                        client.totalSymbols++;
+                    }
+                    client.charPos++;
+                }
             }
-            System.out.println(inputText);
-            client.sendPlayerUpdate();
+
+//            client.totalSymbols++;
+        } else if (!newWord && oldValue.length() != 0) {
+//            System.out.println("Word deleted");
+            client.charPos -= oldValue.length();
+        }
+
+        selectWord(client.charPos, wordEndPos);
+    }
+
+    private void selectWord(int wordStart, int wordEnd) {
+        String labelText = textToInput.getText();
+        givenTextLabel.getChildren().clear(); // Clear existing text
+
+        if (wordStart >= 0 && wordEnd <= labelText.length() && wordStart < wordEnd) {
+            Text before = new Text(labelText.substring(0, wordStart));
+            Text selected = new Text(labelText.substring(wordStart, wordEnd));
+            Text after = new Text(labelText.substring(wordEnd));
+
+            selected.setFill(Color.GREEN);
+
+            givenTextLabel.getChildren().addAll(before, selected, after);
+        } else {
+            textToInput.setText(labelText);
+            givenTextLabel.getChildren().add(textToInput);
         }
     }
 
@@ -88,7 +155,7 @@ public class PlayController {
                             setText();
                         }
 
-                        setPlayerStats(client.getPlayerStats());
+                        setPlayerStats(client.getPlayerStatsString());
                     }
                 })
         );
@@ -117,8 +184,14 @@ public class PlayController {
         playerStats.setText(text);
     }
 
+    public String getTextToInput() {
+        return textToInput.getText();
+    }
+
     public void setText() {
         String text = client.getText();
-        givenTextLabel.setText(text);
+        textToInput.setText(text);
+        while (textToInput.getText().charAt(wordEndPos) != ' ') { wordEndPos++; }
+        selectWord(wordStartPos, wordEndPos);
     }
 }
